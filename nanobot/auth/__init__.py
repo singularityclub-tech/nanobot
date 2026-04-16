@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from dataclasses import dataclass
 
@@ -45,6 +46,7 @@ def save_auth(info: AuthInfo) -> None:
     if info.expires_at is not None:
         data["expires_at"] = info.expires_at
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    path.chmod(0o600)
 
 
 def delete_auth() -> bool:

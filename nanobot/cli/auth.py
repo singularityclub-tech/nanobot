@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import json
-import sys
 import time
 import webbrowser
 
@@ -79,7 +77,7 @@ def _cmd_status() -> None:
     try:
         resp = httpx.get(
             f"{info.server_url}/auth/verify",
-            params={"token": info.token},
+            headers={"Authorization": f"Bearer {info.token}"},
             timeout=10,
         )
         data = resp.json()
@@ -111,7 +109,7 @@ def _cmd_auth_key(key: str, server_url: str | None = None) -> None:
     try:
         resp = httpx.get(
             f"{url}/auth/verify",
-            params={"token": key},
+            headers={"Authorization": f"Bearer {key}"},
             timeout=10,
         )
         data = resp.json()
