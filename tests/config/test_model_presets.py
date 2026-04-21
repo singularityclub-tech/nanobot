@@ -141,3 +141,64 @@ def test_preset_with_reasoning_effort() -> None:
         "agents": {"defaults": {"model_preset": "ds-r1"}},
     })
     assert cfg.agents.defaults.reasoning_effort == "high"
+
+
+def test_preset_routes_to_correct_provider() -> None:
+    """After preset resolution, _match_provider uses the preset's model+provider."""
+    cfg = Config.model_validate({
+        "model_presets": {
+            "ds": {"model": "deepseek-chat", "provider": "deepseek"},
+        },
+        "providers": {"deepseek": {"api_key": "test-key"}},
+        "agents": {"defaults": {"model_preset": "ds"}},
+    })
+    provider_name = cfg.get_provider_name()
+    assert provider_name == "deepseek"
+
+
+def test_preset_with_auto_provider_uses_keyword_matching() -> None:
+    cfg = Config.model_validate({
+        "model_presets": {
+            "auto-ds": {"model": "deepseek-chat", "provider": "auto"},
+        },
+        "providers": {"deepseek": {"api_key": "test-key"}},
+        "agents": {"defaults": {"model_preset": "auto-ds"}},
+    })
+    provider_name = cfg.get_provider_name()
+    assert provider_name == "deepseek"
+
+
+def test_backward_compat_no_preset() -> None:
+    """Existing configs without model_presets work exactly as before."""
+    cfg = Config.model_validate({
+        "providers": {"anthropic": {"api_key": "test-key"}},
+        "agents": {"defaults": {"model": "anthropic/claude-opus-4-5"}},
+    })
+    assert cfg.agents.defaults.model == "anthropic/claude-opus-4-5"
+    assert cfg.agents.defaults.model_preset is None
+    assert cfg.get_provider_name() == "anthropic"
+
+
+def test_preset_overrides_all_model_fields() -> None:
+    """When model_preset is set, ALL model-specific fields come from preset."""
+    cfg = Config.model_validate({
+        "model_presets": {
+            "gpt5": {"model": "gpt-5", "provider": "openai", "max_tokens": 16384},
+        },
+        "providers": {"openai": {"api_key": "test-key"}},
+        "agents": {
+            "defaults": {
+                "model_preset": "gpt5",
+                "model": "legacy-model",
+                "max_tokens": 4096,
+            },
+        },
+    })
+    assert cfg.agents.defaults.model == "gpt-5"
+    assert cfg.agents.defaults.provider == "openai"
+    assert cfg.agents.defaults.max_tokens == 16384
+
+
+def test_empty_model_presets_dict_is_harmless() -> None:
+    cfg = Config.model_validate({"model_presets": {}})
+    assert cfg.agents.defaults.model == "anthropic/claude-opus-4-5"
