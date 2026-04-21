@@ -9,6 +9,7 @@ from loguru import logger
 
 from nanobot.agent.subagent import SubagentStatus
 from nanobot.agent.tools.base import Tool
+from nanobot.providers.base import GenerationSettings
 
 if TYPE_CHECKING:
     from nanobot.agent.loop import AgentLoop
@@ -78,6 +79,7 @@ class MyTool(Tool):
         "max_iterations":        {"type": int, "min": 1,   "max": 100},
         "context_window_tokens": {"type": int, "min": 4096, "max": 1_000_000},
         "model":                 {"type": str, "min_len": 1},
+        "model_preset":          {"type": str, "min_len": 1},
     }
 
     _MAX_RUNTIME_KEYS = 64
@@ -307,6 +309,16 @@ class MyTool(Tool):
         top = key.split(".")[0]
         if top in self._DENIED_ATTRS or top.startswith("__"):
             return f"Error: '{top}' is not accessible"
+        # Special handling for model_preset: show current + available
+        if key == "model_preset":
+            current = self._loop._runtime_vars.get("model_preset")
+            presets = self._loop.model_presets
+            lines = [f"current: {current!r}" if current else "current: None"]
+            if presets:
+                lines.append(f"available: {', '.join(presets)}")
+            else:
+                lines.append("available: (none)")
+            return "\n".join(lines)
         obj, err = self._resolve_path(key)
         if err:
             # "scratchpad" alias for _runtime_vars
@@ -386,6 +398,38 @@ class MyTool(Tool):
                 value = expected(value)
             except (ValueError, TypeError):
                 return f"Error: '{key}' must be {expected.__name__}, got {type(value).__name__}"
+
+        # --- model_preset: resolve all fields from preset ---
+        if key == "model_preset":
+            from nanobot.config.schema import ModelPresetConfig
+            presets: dict[str, ModelPresetConfig] = self._loop.model_presets
+            if value not in presets:
+                self._audit("modify", f"model_preset FAILED: {value!r} not found")
+                return f"Error: model_preset {value!r} not found. Available: {', '.join(presets) or '(none)'}"
+            preset = presets[value]
+            old_model = self._loop.model
+            old_cwt = self._loop.context_window_tokens
+            old_gen = self._loop.provider.generation
+            # Apply all preset fields
+            self._loop.model = preset.model
+            self._loop.context_window_tokens = preset.context_window_tokens
+            self._loop.provider.generation = GenerationSettings(
+                temperature=preset.temperature,
+                max_tokens=preset.max_tokens,
+                reasoning_effort=preset.reasoning_effort,
+            )
+            self._loop._runtime_vars["model_preset"] = value
+            self._audit("modify", f"model_preset: {old_model!r} -> {preset.model!r} (full preset applied)")
+            return (
+                f"Set model_preset = {value!r}\n"
+                f"  model: {old_model!r} -> {preset.model!r}\n"
+                f"  context_window_tokens: {old_cwt} -> {preset.context_window_tokens}\n"
+                f"  max_tokens: {old_gen.max_tokens} -> {preset.max_tokens}\n"
+                f"  temperature: {old_gen.temperature} -> {preset.temperature}\n"
+                f"  reasoning_effort: {old_gen.reasoning_effort!r} -> {preset.reasoning_effort!r}"
+            )
+
+        # --- existing restricted key logic ---
         old = getattr(self._loop, key)
         if "min" in spec and value < spec["min"]:
             return f"Error: '{key}' must be >= {spec['min']}"
