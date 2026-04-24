@@ -28,6 +28,7 @@ from nanobot.agent.tools.registry import ToolRegistry
 from nanobot.agent.tools.search import GlobTool, GrepTool
 from nanobot.agent.tools.shell import ExecTool
 from nanobot.agent.tools.self import MyTool
+from nanobot.agent.tools.shell import ExecTool
 from nanobot.agent.tools.spawn import SpawnTool
 from nanobot.agent.tools.web import WebFetchTool, WebSearchTool
 from nanobot.bus.events import InboundMessage, OutboundMessage
@@ -46,6 +47,8 @@ from nanobot.utils.progress_events import (
     on_progress_accepts_tool_events,
 )
 from nanobot.utils.runtime import EMPTY_FINAL_RESPONSE_MESSAGE
+
+from nanobot.utils.langfuse import observe_agent_turn
 
 if TYPE_CHECKING:
     from nanobot.config.schema import ChannelsConfig, ExecToolConfig, ToolsConfig, WebToolsConfig
@@ -748,6 +751,7 @@ class AgentLoop:
         self._running = False
         logger.info("Agent loop stopping")
 
+    @observe_agent_turn
     async def _process_message(
         self,
         msg: InboundMessage,

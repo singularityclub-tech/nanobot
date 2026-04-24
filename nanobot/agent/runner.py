@@ -22,6 +22,8 @@ from nanobot.utils.helpers import (
     maybe_persist_tool_result,
     truncate_text,
 )
+from nanobot.utils.langfuse import start_span, update
+from nanobot.utils.prompt_templates import render_template
 from nanobot.utils.runtime import (
     EMPTY_FINAL_RESPONSE_MESSAGE,
     build_finalization_retry_message,
@@ -46,6 +48,26 @@ _COMPACTABLE_TOOLS = frozenset({
 })
 _BACKFILL_CONTENT = "[Tool result unavailable — call was interrupted or lost]"
 
+
+def _trace_tool_call(func):
+    async def wrapper(self, spec, tool_call, external_lookup_counts):
+        with start_span(
+            name=f"tool:{tool_call.name}",
+            as_type="tool",
+            input=tool_call.arguments,
+            metadata={"tool_name": tool_call.name},
+        ) as span:
+            result, event, error = await func(self, spec, tool_call, external_lookup_counts)
+            update(
+                span,
+                output=result if isinstance(result, str) else event.get("detail"),
+                metadata={"tool_name": tool_call.name},
+                level="ERROR" if error is not None or event.get("status") == "error" else None,
+                status_message=event.get("detail") if event.get("status") == "error" else None,
+            )
+            return result, event, error
+
+    return wrapper
 
 
 @dataclass(slots=True)
@@ -647,6 +669,7 @@ class AgentRunner:
                 fatal_error = error
         return results, events, fatal_error
 
+    @_trace_tool_call
     async def _run_tool(
         self,
         spec: AgentRunSpec,
