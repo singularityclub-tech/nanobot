@@ -4,12 +4,17 @@ from __future__ import annotations
 
 import importlib
 import os
+from contextvars import ContextVar, Token
 from contextlib import contextmanager, nullcontext
 from typing import Any, Callable
 
 _LANGFUSE_READY = False
 _get_client: Callable[[], Any] | None = None
 _propagate_attributes: Callable[..., Any] | None = None
+_current_trace_id: ContextVar[str | None] = ContextVar("nanobot_langfuse_trace_id", default=None)
+_current_session_id: ContextVar[str | None] = ContextVar(
+    "nanobot_langfuse_session_id", default=None
+)
 
 if os.environ.get("LANGFUSE_SECRET_KEY"):
     try:
@@ -42,6 +47,42 @@ def get_client() -> Any | None:
         return client_factory()
     except Exception:
         return None
+
+
+def current_trace_id() -> str | None:
+    return _current_trace_id.get()
+
+
+def current_session_id() -> str | None:
+    return _current_session_id.get()
+
+
+def current_trace_headers(
+    *,
+    trace_header_name: str = "x-singularity-trace-id",
+    session_header_name: str = "x-singularity-session-id",
+) -> dict[str, str]:
+    headers: dict[str, str] = {}
+    trace_id = current_trace_id()
+    session_id = current_session_id()
+    if trace_id:
+        headers[trace_header_name] = trace_id
+    if session_id:
+        headers[session_header_name] = session_id
+    return headers
+
+
+@contextmanager
+def bind_current_trace_context(
+    *, trace_id: str | None = None, session_id: str | None = None
+):
+    trace_token: Token[str | None] = _current_trace_id.set(trace_id)
+    session_token: Token[str | None] = _current_session_id.set(session_id)
+    try:
+        yield
+    finally:
+        _current_session_id.reset(session_token)
+        _current_trace_id.reset(trace_token)
 
 
 @contextmanager
@@ -174,13 +215,26 @@ def observe_agent_turn(func: Callable[..., Any]) -> Callable[..., Any]:
 
         metadata = {"model": getattr(self, "model", None), "channel": channel}
         with start_span(name="agent-turn", input=msg.content, metadata=metadata) as span:
-            with propagate(
+            trace_id = getattr(span, "trace_id", None) if span is not None else None
+            if not trace_id:
+                client = get_client()
+                if client is not None:
+                    try:
+                        trace_id = client.get_current_trace_id()
+                    except Exception:
+                        trace_id = None
+
+            with bind_current_trace_context(
+                trace_id=trace_id,
                 session_id=trace_session_id,
-                user_id=user_id,
-                tags=["nanobot", channel],
-                trace_name="agent-turn",
             ):
-                result = await func(self, msg, session_key, *args, **kwargs)
+                with propagate(
+                    session_id=trace_session_id,
+                    user_id=user_id,
+                    tags=["nanobot", channel],
+                    trace_name="agent-turn",
+                ):
+                    result = await func(self, msg, session_key, *args, **kwargs)
             update(span, output=getattr(result, "content", None), metadata=metadata)
             return result
 

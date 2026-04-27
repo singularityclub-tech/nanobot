@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import sys
+from contextvars import ContextVar
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,7 @@ from nanobot.agent.tools.base import Tool, tool_parameters
 from nanobot.agent.tools.sandbox import wrap_command
 from nanobot.agent.tools.schema import IntegerSchema, StringSchema, tool_parameters_schema
 from nanobot.config.paths import get_media_dir
+from nanobot.utils.langfuse import current_session_id, current_trace_id
 
 _IS_WINDOWS = sys.platform == "win32"
 
@@ -51,6 +53,8 @@ class ExecTool(Tool):
         self.timeout = timeout
         self.working_dir = working_dir
         self.sandbox = sandbox
+        self._channel: ContextVar[str] = ContextVar("exec_channel", default="")
+        self._chat_id: ContextVar[str] = ContextVar("exec_chat_id", default="")
         self.deny_patterns = deny_patterns or [
             r"\brm\s+-[rf]{1,2}\b",          # rm -r, rm -rf, rm -fr
             r"\bdel\s+/[fq]\b",              # del /f, del /q
@@ -74,6 +78,11 @@ class ExecTool(Tool):
         self.restrict_to_workspace = restrict_to_workspace
         self.path_append = path_append
         self.allowed_env_keys = allowed_env_keys or []
+
+    def set_context(self, channel: str, chat_id: str) -> None:
+        """Set the current session context for subprocesses."""
+        self._channel.set(channel)
+        self._chat_id.set(chat_id)
 
     @property
     def name(self) -> str:
@@ -250,6 +259,7 @@ class ExecTool(Tool):
                 "ProgramFiles(x86)": os.environ.get("ProgramFiles(x86)", ""),
                 "ProgramW6432": os.environ.get("ProgramW6432", ""),
             }
+            self._inject_runtime_context(env)
             for key in self.allowed_env_keys:
                 val = os.environ.get(key)
                 if val is not None:
@@ -261,11 +271,26 @@ class ExecTool(Tool):
             "LANG": os.environ.get("LANG", "C.UTF-8"),
             "TERM": os.environ.get("TERM", "dumb"),
         }
+        self._inject_runtime_context(env)
         for key in self.allowed_env_keys:
             val = os.environ.get(key)
             if val is not None:
                 env[key] = val
         return env
+
+    def _inject_runtime_context(self, env: dict[str, str]) -> None:
+        channel = self._channel.get()
+        chat_id = self._chat_id.get()
+        trace_id = current_trace_id()
+        session_id = current_session_id()
+        if channel:
+            env["NANOBOT_CHANNEL"] = channel
+        if chat_id:
+            env["NANOBOT_CHAT_ID"] = chat_id
+        if trace_id:
+            env["NANOBOT_TRACE_ID"] = trace_id
+        if session_id:
+            env["NANOBOT_SESSION_ID"] = session_id
 
     def _guard_command(self, command: str, cwd: str) -> str | None:
         """Best-effort safety guard for potentially destructive commands."""

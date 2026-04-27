@@ -350,13 +350,15 @@ class AgentLoop:
         # Compute the effective session key (accounts for unified sessions)
         # so that subagent results route to the correct pending queue.
         effective_key = UNIFIED_SESSION_KEY if self._unified_session else f"{channel}:{chat_id}"
-        for name in ("message", "spawn", "cron", "my"):
+        for name in ("message", "spawn", "cron", "my", "exec"):
             if tool := self.tools.get(name):
                 if hasattr(tool, "set_context"):
                     if name == "spawn":
                         tool.set_context(channel, chat_id, effective_key=effective_key)
-                    else:
+                    elif name == "message":
                         tool.set_context(channel, chat_id, *([message_id] if name == "message" else []))
+                    else:
+                        tool.set_context(channel, chat_id)
 
     @staticmethod
     def _strip_think(text: str | None) -> str | None:
