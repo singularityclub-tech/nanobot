@@ -214,7 +214,8 @@ def observe_agent_turn(func: Callable[..., Any]) -> Callable[..., Any]:
             user_id = None if msg.sender_id in {"user", "subagent"} else str(msg.sender_id)
 
         metadata = {"model": getattr(self, "model", None), "channel": channel}
-        with start_span(name="agent-turn", input=msg.content, metadata=metadata) as span:
+        final_input = msg.content
+        with start_span(name="agent-turn", input=final_input, metadata=metadata) as span:
             trace_id = getattr(span, "trace_id", None) if span is not None else None
             if not trace_id:
                 client = get_client()
@@ -235,7 +236,12 @@ def observe_agent_turn(func: Callable[..., Any]) -> Callable[..., Any]:
                     trace_name="agent-turn",
                 ):
                     result = await func(self, msg, session_key, *args, **kwargs)
-            update(span, output=getattr(result, "content", None), metadata=metadata)
+            update(
+                span,
+                input=final_input,
+                output=getattr(result, "content", None),
+                metadata=metadata,
+            )
             return result
 
     return wrapper

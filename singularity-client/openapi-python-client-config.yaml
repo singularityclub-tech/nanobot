@@ -1,0 +1,6 @@
+project_name_override: singularity-client
+package_name_override: singularity_client
+package_version_override: 0.1.0
+use_path_prefixes_for_title_model_names: true
+literal_enums: true
+post_hooks: []
