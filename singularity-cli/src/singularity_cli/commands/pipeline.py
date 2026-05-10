@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import typer
-
 from singularity_client.api.pipelines import (
     run_baseline_recalculation,
     run_checkin_response,
@@ -15,7 +14,6 @@ from singularity_client.models.checkin_response_request import CheckinResponseRe
 from singularity_client.models.experiment_evaluation_request import ExperimentEvaluationRequest
 from singularity_client.models.experiment_search_request import ExperimentSearchRequest
 from singularity_client.models.sensemaking_request import SensemakingRequest
-from singularity_client.models.sensemaking_request_window import SensemakingRequestWindow
 from singularity_client.models.user_decision_request import UserDecisionRequest
 from singularity_client.models.user_decision_request_decision import UserDecisionRequestDecision
 from singularity_client.types import UNSET
@@ -26,18 +24,22 @@ pipeline_app = typer.Typer(no_args_is_help=True)
 
 
 @pipeline_app.command("checkin-response")
-def checkin_response_command(ctx: typer.Context, context_hint: str | None = typer.Option(None, "--context-hint")) -> None:
+def checkin_response_command(
+    ctx: typer.Context, context_hint: str | None = typer.Option(None, "--context-hint")
+) -> None:
     run_authenticated_call(
         "pipeline.checkin-response",
         run_checkin_response.asyncio,
         ctx=ctx,
-        body=CheckinResponseRequest(context_hint=context_hint if context_hint is not None else UNSET),
+        body=CheckinResponseRequest(
+            context_hint=context_hint if context_hint is not None else UNSET
+        ),
     )
 
 
-@pipeline_app.command("data-sync")
-def data_sync_command(ctx: typer.Context) -> None:
-    run_authenticated_call("pipeline.data-sync", run_data_sync.asyncio, ctx=ctx)
+# @pipeline_app.command("data-sync")
+# def data_sync_command(ctx: typer.Context) -> None:
+#     run_authenticated_call("pipeline.data-sync", run_data_sync.asyncio, ctx=ctx)
 
 
 @pipeline_app.command("experiment-search")
@@ -79,24 +81,28 @@ def experiment_evaluation_command(
         "pipeline.experiment-evaluation",
         run_experiment_evaluation.asyncio,
         ctx=ctx,
-        body=ExperimentEvaluationRequest(early_stop=early_stop, reason=reason if reason is not None else UNSET),
+        body=ExperimentEvaluationRequest(
+            early_stop=early_stop, reason=reason if reason is not None else UNSET
+        ),
     )
 
 
 @pipeline_app.command("baseline-recalculation")
 def baseline_recalculation_command(ctx: typer.Context) -> None:
-    run_authenticated_call("pipeline.baseline-recalculation", run_baseline_recalculation.asyncio, ctx=ctx)
+    run_authenticated_call(
+        "pipeline.baseline-recalculation", run_baseline_recalculation.asyncio, ctx=ctx
+    )
 
 
 @pipeline_app.command("sensemaking")
 def sensemaking_command(
     ctx: typer.Context,
     context_hint: str | None = typer.Option(None, "--context-hint"),
-    window: SensemakingRequestWindow | None = typer.Option(
-        None,
-        "--window",
-        help="Projection window: local_day, rolling_7d, rolling_28d",
-    ),
+    # window: str | None = typer.Option(
+    #     None,
+    #     "--window",
+    #     help="Projection window: local_day, rolling_7d, rolling_28d",
+    # ),
 ) -> None:
     run_authenticated_call(
         "pipeline.sensemaking",
@@ -104,6 +110,6 @@ def sensemaking_command(
         ctx=ctx,
         body=SensemakingRequest(
             context_hint=context_hint if context_hint is not None else UNSET,
-            window=window if window is not None else UNSET,
+            # window=window if window is not None else UNSET,
         ),
     )

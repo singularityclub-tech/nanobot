@@ -20,6 +20,8 @@ class PipelineAck:
         active_log_ids (list[int] | Unset):
         outbox_item_id (int | None | Unset):
         narrator_text (None | str | Unset):
+        raw_asset_id (int | None | Unset):
+        observation_ids (list[int] | Unset):
     """
 
     pipeline: str
@@ -27,6 +29,8 @@ class PipelineAck:
     active_log_ids: list[int] | Unset = UNSET
     outbox_item_id: int | None | Unset = UNSET
     narrator_text: None | str | Unset = UNSET
+    raw_asset_id: int | None | Unset = UNSET
+    observation_ids: list[int] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -54,6 +58,16 @@ class PipelineAck:
         else:
             narrator_text = self.narrator_text
 
+        raw_asset_id: int | None | Unset
+        if isinstance(self.raw_asset_id, Unset):
+            raw_asset_id = UNSET
+        else:
+            raw_asset_id = self.raw_asset_id
+
+        observation_ids: list[int] | Unset = UNSET
+        if not isinstance(self.observation_ids, Unset):
+            observation_ids = self.observation_ids
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -69,6 +83,10 @@ class PipelineAck:
             field_dict["outbox_item_id"] = outbox_item_id
         if narrator_text is not UNSET:
             field_dict["narrator_text"] = narrator_text
+        if raw_asset_id is not UNSET:
+            field_dict["raw_asset_id"] = raw_asset_id
+        if observation_ids is not UNSET:
+            field_dict["observation_ids"] = observation_ids
 
         return field_dict
 
@@ -106,12 +124,25 @@ class PipelineAck:
 
         narrator_text = _parse_narrator_text(d.pop("narrator_text", UNSET))
 
+        def _parse_raw_asset_id(data: object) -> int | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(int | None | Unset, data)
+
+        raw_asset_id = _parse_raw_asset_id(d.pop("raw_asset_id", UNSET))
+
+        observation_ids = cast(list[int], d.pop("observation_ids", UNSET))
+
         pipeline_ack = cls(
             pipeline=pipeline,
             active_log_id=active_log_id,
             active_log_ids=active_log_ids,
             outbox_item_id=outbox_item_id,
             narrator_text=narrator_text,
+            raw_asset_id=raw_asset_id,
+            observation_ids=observation_ids,
         )
 
         pipeline_ack.additional_properties = d

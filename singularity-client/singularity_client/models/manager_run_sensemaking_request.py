@@ -7,19 +7,19 @@ from attrs import define as _attrs_define
 
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="SensemakingRequest")
+T = TypeVar("T", bound="ManagerRunSensemakingRequest")
 
 
 @_attrs_define
-class SensemakingRequest:
+class ManagerRunSensemakingRequest:
     """
     Attributes:
         context_hint (None | str | Unset):
-        intent (str | Unset):  Default: 'checkin_explanation'.
+        timezone (str | Unset):  Default: 'UTC'.
     """
 
     context_hint: None | str | Unset = UNSET
-    intent: str | Unset = "checkin_explanation"
+    timezone: str | Unset = "UTC"
 
     def to_dict(self) -> dict[str, Any]:
         context_hint: None | str | Unset
@@ -28,15 +28,15 @@ class SensemakingRequest:
         else:
             context_hint = self.context_hint
 
-        intent = self.intent
+        timezone = self.timezone
 
         field_dict: dict[str, Any] = {}
 
         field_dict.update({})
         if context_hint is not UNSET:
             field_dict["context_hint"] = context_hint
-        if intent is not UNSET:
-            field_dict["intent"] = intent
+        if timezone is not UNSET:
+            field_dict["timezone"] = timezone
 
         return field_dict
 
@@ -53,11 +53,11 @@ class SensemakingRequest:
 
         context_hint = _parse_context_hint(d.pop("context_hint", UNSET))
 
-        intent = d.pop("intent", UNSET)
+        timezone = d.pop("timezone", UNSET)
 
-        sensemaking_request = cls(
+        manager_run_sensemaking_request = cls(
             context_hint=context_hint,
-            intent=intent,
+            timezone=timezone,
         )
 
-        return sensemaking_request
+        return manager_run_sensemaking_request

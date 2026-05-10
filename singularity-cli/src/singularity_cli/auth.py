@@ -74,11 +74,6 @@ async def resolve_authenticated_client(context: RuntimeContext) -> tuple[Client,
                     scopes=["mcp"],
                     trace_id=context.trace_id,
                     session_id=context.session_id,
-                    parent_observation_id=(
-                        context.parent_observation_id
-                        if context.parent_observation_id
-                        else UNSET
-                    ),
                 ),
             ),
             operation="issue_actor_token",
@@ -110,11 +105,6 @@ async def issue_token_for_context(context: RuntimeContext) -> tuple[Client, Acto
                     scopes=["mcp"],
                     trace_id=context.trace_id,
                     session_id=context.session_id,
-                    parent_observation_id=(
-                        context.parent_observation_id
-                        if context.parent_observation_id
-                        else UNSET
-                    ),
                 ),
             ),
             operation="issue_actor_token",

@@ -6,11 +6,11 @@ from .auth import AppState
 from .commands.auth import auth_app
 from .commands.escalation import escalation_app
 from .commands.health import register as register_health
+from .commands.inbox import inbox_app
 from .commands.observation import observation_app
 from .commands.outbox import outbox_app
 from .commands.pipeline import pipeline_app
 from .commands.profile import profile_app
-from .commands.projection import projection_app
 from .commands.user import user_app
 from .context import RuntimeContext
 
@@ -72,8 +72,8 @@ register_health(app)
 app.add_typer(auth_app, name="auth")
 app.add_typer(user_app, name="user")
 app.add_typer(profile_app, name="profile")
-# app.add_typer(projection_app, name="projection")
 app.add_typer(observation_app, name="observation")
 app.add_typer(escalation_app, name="escalation")
 app.add_typer(outbox_app, name="outbox")
+app.add_typer(inbox_app, name="inbox")
 app.add_typer(pipeline_app, name="pipeline")

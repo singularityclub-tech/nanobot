@@ -20,7 +20,6 @@ class ActorTokenRequest:
         scopes (list[str] | Unset):
         trace_id (None | str | Unset):
         session_id (None | str | Unset):
-        parent_observation_id (None | str | Unset):
     """
 
     service_secret: str
@@ -29,7 +28,6 @@ class ActorTokenRequest:
     scopes: list[str] | Unset = UNSET
     trace_id: None | str | Unset = UNSET
     session_id: None | str | Unset = UNSET
-    parent_observation_id: None | str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         service_secret = self.service_secret
@@ -54,12 +52,6 @@ class ActorTokenRequest:
         else:
             session_id = self.session_id
 
-        parent_observation_id: None | str | Unset
-        if isinstance(self.parent_observation_id, Unset):
-            parent_observation_id = UNSET
-        else:
-            parent_observation_id = self.parent_observation_id
-
         field_dict: dict[str, Any] = {}
 
         field_dict.update(
@@ -75,8 +67,6 @@ class ActorTokenRequest:
             field_dict["trace_id"] = trace_id
         if session_id is not UNSET:
             field_dict["session_id"] = session_id
-        if parent_observation_id is not UNSET:
-            field_dict["parent_observation_id"] = parent_observation_id
 
         return field_dict
 
@@ -109,17 +99,6 @@ class ActorTokenRequest:
 
         session_id = _parse_session_id(d.pop("session_id", UNSET))
 
-        def _parse_parent_observation_id(data: object) -> None | str | Unset:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(None | str | Unset, data)
-
-        parent_observation_id = _parse_parent_observation_id(
-            d.pop("parent_observation_id", UNSET)
-        )
-
         actor_token_request = cls(
             service_secret=service_secret,
             service=service,
@@ -127,7 +106,6 @@ class ActorTokenRequest:
             scopes=scopes,
             trace_id=trace_id,
             session_id=session_id,
-            parent_observation_id=parent_observation_id,
         )
 
         return actor_token_request
